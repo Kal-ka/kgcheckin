@@ -6,13 +6,25 @@ import { close_api, delay, send, startService, waitForApi } from "./utils/utils.
 
 async function main() {
 
-  const USERINFO = process.env.USERINFO
+  const USERINFO = process.env.USERINFO;
   // 刷新token
-  let needRefresh = false
+  let needRefresh = false;
   if (!USERINFO) {
-    throw new Error("未配置")
+    console.error("错误：未检测到环境变量 USERINFO。请在仓库 Settings → Secrets and variables → Actions 中添加名为 USERINFO 的 secret，内容为 JSON 数组，示例: [{\"userid\":\"123\",\"token\":\"xxx\"}]");
+    // 如果你希望在缺少 USERINFO 时跳过而非标记失败，可以改为 process.exit(0)
+    throw new Error("USERINFO 未配置");
   }
-  const userinfo = JSON.parse(USERINFO)
+
+  let userinfo;
+  try {
+    userinfo = JSON.parse(USERINFO);
+    if (!Array.isArray(userinfo)) {
+      throw new Error("USERINFO 必须为 JSON 数组");
+    }
+  } catch (err) {
+    console.error("解析 USERINFO 失败，请确保 secret 为合法 JSON 且为数组，错误信息：", err.message);
+    throw err;
+  }
 
   // 启动服务并等待就绪（避免冷启动竞态导致首个请求失败）
   const api = startService()
